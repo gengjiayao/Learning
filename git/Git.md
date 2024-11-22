@@ -1,4 +1,4 @@
-<center><h1>Git Learning</h1></center>
+<center><h1>Git</h1></center>
 
 ### 一、科学上网相关的Git配置
 
