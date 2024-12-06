@@ -51,3 +51,73 @@ RdmaClient --> RdmaDriver --> RdmaHw --> QbbNetDevice --> Swich节点发送
 - $ReceiveUdp$ 函数中会产生 $ACK$ 或 $NACK$。
 - 调用 `RdmaEnqueueHighPrioQ`  函数将生成的 $ACK$ 包进入 $ACK$ 队列，这个包提前设置成了高优先级，以后在 `DequeueAndTransmit` 函数中、`DequeueQindex` 函数中通过高优先级先去发 $ACK$。
 - 调用 `TriggerTransmit` 函数，发送 $ACK$ 包，发送过程见上方“发送部分”。
+
+
+
+### 自定义数据包字段
+
+#### 修改 $udp$ 报文头
+
+- `seq-ts-header` 相关修改
+
+  - 两处？`seq-ts-header.h` 的 `public` 字段添加 `test_udp` 字段。
+  - `seq-ts-header.cc` 中 `SeqTsHeader::GetHeaderSize`函数：
+    - 也就是`seq-ts-header.h` 中 `virtual uint32_t GetSerializedSize (void) const;` 的具体实现， `+4`。
+  - `seq-ts-header.cc` 中 `SeqTsHeader::Serialize` 函数：
+    - 添加 `i.WriteHtonU32(test_udp);` 
+  - `seq-ts-header.cc` 中 `SeqTsHeader::Deserialize` 函数：
+    - 添加 `test_udp = i.ReadNtohU32();`
+
+  
+
+- `custom-header` 相关修改
+
+  - 两处？`custom-header.h` 的 `udp` 结构体中添加 `test_udp` 字段。
+  - `custom-header.cc` 中 `CustomHeader::GetUdpHeaderSize` 函数：
+    - `+ sizeof(udp.test_udp)`
+  - `custom-header.cc` 中 `CustomHeader::Serialize` 函数：
+    - 添加 `i.WriteHtonU32(udp.test_udp);`
+  - `custom-header.cc` 中 `CustomHeader::Deserialize` 函数：
+    -  `UDP + SeqTsHeader` 中添加`udp.test_udp = i.ReadNtohU32();`
+
+
+
+#### 修改 $udp$ 相关处理函数
+
+- `seq-ts-header` 相关修改
+  - `seq-ts-header.h` 头文件
+    - 两处？添加 `SetTestUDP` 和 `GetTestUDP` 的函数声明。
+  - `seq-ts-header.cc` 实现文件
+    - 添加 `SeqTsHeader::SetTestUDP` 和 `SeqTsHeader::GetTestUDP` 的函数实现。
+
+
+
+#### $udp$ 相关成员变量值的设置
+
+- `RdmaHw::GetNxtPacket` 相关修改：
+  - 设置 `test_udp` 的值：`seqTs.SetTestUDP(20240000);` 
+
+
+
+#### $udp$ 相关修改在接收方的检查
+
+- 在 `generate ACK or NACK` 上方添加检查：
+
+- ```cpp
+  if (ch.udp.test_udp == 20240000) {
+      printf("receive success test_udp: %d\n", ch.udp.test_udp);
+  }
+  ```
+
+- 
+
+
+
+### CustomHeader相关
+
+总的来说，这个定制化的报文头是将传输中的数据包的报文头解析后保存下来的数据。
+
+- 在接收数据时 `QbbNetDevice::Receive` 中，首先会去定义一个 `CustomHeader ch`。
+- 调用 `packet->PeekHeader(ch)` 函数去填充 `ch`，调用 `header.Deserialize` 函数
+  - `PeekHeader` 是 `packer.cc` 中的函数，传入的参数是 `CustomHeader` 数据类型的 `ch`，由于 `CustomHeader` 继承于 `Header`，所以 `Header` 中具体的虚函数由 `CustomHeader::Deserialize` 具体完成。
+
