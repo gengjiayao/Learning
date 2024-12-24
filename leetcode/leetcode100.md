@@ -363,6 +363,458 @@ public:
 
 
 
+### [21. 合并两个有序链表](https://leetcode.cn/problems/merge-two-sorted-lists/)
+
+- S1. 递归
+
+```cpp
+class Solution {
+public:
+    ListNode* mergeTwoLists(ListNode* list1, ListNode* list2) {
+        if (!list1) return list2;
+        if (!list2) return list1;
+        if (list1->val < list2->val) {
+            list1->next = mergeTwoLists(list1->next, list2);
+            return list1;
+        } 
+        list2->next = mergeTwoLists(list1, list2->next);
+        return list2;
+    }
+};
+```
+
+- S2. 迭代
+
+```cpp
+class Solution {
+public:
+    ListNode* mergeTwoLists(ListNode* l1, ListNode* l2) {
+        ListNode *node = new ListNode;
+
+        ListNode *cur = node;
+        while (l1 && l2) {
+            if (l1->val < l2->val) {
+                cur->next = l1;
+                l1 = l1->next;
+            } else {
+                cur->next = l2;
+                l2 = l2->next;
+            }
+            cur = cur->next;
+        }
+        cur->next = l1 ? l1 : l2;
+        return node->next;
+    }
+};
+```
+
+
+
+### [2. 两数相加](https://leetcode.cn/problems/add-two-numbers/)
+
+- 模拟
+
+```cpp
+class Solution {
+public:
+    ListNode* addTwoNumbers(ListNode* l1, ListNode* l2) {
+        ListNode head;
+        ListNode *cur = &head;
+        int sum = 0;
+        while (l1 || l2 || sum) {
+            if (l1) {
+                sum += l1->val;
+                l1 = l1->next;
+            }
+            if (l2) {
+                sum += l2->val;
+                l2 = l2->next;
+            }
+            cur->next = new ListNode(sum % 10);
+            cur = cur->next;
+            sum = sum >= 10 ? 1 : 0;
+        }
+        return head.next;
+    }
+};
+```
+
+
+
+### [24. 两两交换链表中的节点](https://leetcode.cn/problems/swap-nodes-in-pairs/)
+
+- 递归
+
+```cpp
+class Solution {
+public:
+    ListNode* swapPairs(ListNode* head) {
+        if (head == nullptr || head->next == nullptr) return head;
+
+        ListNode* newHead = head->next;
+        head->next = swapPairs(newHead->next);
+        newHead->next = head;
+        return newHead;
+    }
+};
+```
+
+- 递推（复杂版）
+
+```cpp
+class Solution {
+public:
+    ListNode* swapPairs(ListNode* head) {
+        ListNode dummy;
+        dummy.next = head;
+        ListNode* first = &dummy;
+        ListNode* second = head;
+        while (second && second->next) {
+            first->next = second->next;
+            second->next = first->next->next;
+            first->next->next = second;
+            first = second;
+            second = first->next;
+        }
+        return dummy.next;
+    }
+};
+```
+
+- 递推（简单版）
+
+```cpp
+class Solution {
+public:
+    ListNode* swapPairs(ListNode* head) {
+        ListNode dummy;
+        dummy.next = head;
+        ListNode* node0 = &dummy;
+        ListNode* node1 = head;
+        while (node1 && node1->next) {
+            ListNode* node2 = node1->next;
+            ListNode* node3 = node2->next;
+            node0->next = node2;
+            node2->next = node1;
+            node1->next = node3;
+            node0 = node1;
+            node1 = node3;
+        }
+        return dummy.next;
+    }
+};
+```
+
+
+
+### [19. 删除链表的倒数第 N 个结点](https://leetcode.cn/problems/remove-nth-node-from-end-of-list/)
+
+- 双指针
+
+```cpp
+class Solution {
+public:
+    ListNode* removeNthFromEnd(ListNode* head, int n) {
+        ListNode start;
+        start.next = head; 
+        ListNode* first = &start;
+        ListNode* second = &start;
+        while (n--) {
+            first = first->next;
+        }
+        while (first->next) {
+            first = first->next;
+            second = second->next;
+        }
+        ListNode* nxt = second->next;
+        second->next = second->next->next;
+        delete nxt;
+        return start.next;
+    }
+};
+```
+
+
+
+
+
+
+
+## 二叉树
+
+### [94. 二叉树的中序遍历](https://leetcode.cn/problems/binary-tree-inorder-traversal/)
+
+- S1. 递归
+
+```cpp
+class Solution {
+public:
+    void solve(TreeNode* root, vector<int> &res) {
+        if (root == nullptr) return;
+        solve(root->left, res);
+        res.emplace_back(root->val);
+        solve(root->right,res);
+    }
+
+    vector<int> inorderTraversal(TreeNode* root) {
+        vector<int> res;
+        solve(root, res);
+        return res;
+    }
+};
+```
+
+- S2. 迭代
+
+```cpp
+class Solution {
+public:
+    vector<int> inorderTraversal(TreeNode* root) {
+        vector<int> res;
+        stack<TreeNode *> stk;
+
+        while (!stk.empty() || root) {
+            while (root) {
+                stk.push(root);
+                root = root->left;
+            }
+            root = stk.top();
+            stk.pop();
+            res.emplace_back(root->val);
+            root = root->right;
+        } 
+        return res;
+    }
+};
+```
+
+
+
+### [104. 二叉树的最大深度](https://leetcode.cn/problems/maximum-depth-of-binary-tree/)
+
+- 简单递归
+
+```cpp
+class Solution {
+public:
+    int maxDepth(TreeNode* root) {
+        if (!root) return 0;
+        return max(maxDepth(root->left), maxDepth(root->right)) + 1;
+    }
+};
+```
+
+
+
+### [226. 翻转二叉树](https://leetcode.cn/problems/invert-binary-tree/)
+
+- 简单递归
+
+```cpp
+class Solution {
+public:
+    TreeNode* invertTree(TreeNode* root) {
+        if (!root) return nullptr;
+        TreeNode* tmp = root->right;
+        root->right = root->left;
+        root->left = tmp;
+        invertTree(root->left);
+        invertTree(root->right);
+        return root;
+    }
+};
+```
+
+
+
+### [101. 对称二叉树](https://leetcode.cn/problems/symmetric-tree/)
+
+- 简单递归
+
+```cpp
+class Solution {
+public:
+    bool solve(TreeNode* left, TreeNode* right) {
+        if (left == nullptr || right == nullptr)
+            return left == right;
+        return left->val == right->val && solve(left->right, right->left) && solve(left->left, right->right);
+    }
+
+    bool isSymmetric(TreeNode* root) {
+        return solve(root->left, root->right);
+    }
+};
+```
+
+
+
+### [543. 二叉树的直径](https://leetcode.cn/problems/diameter-of-binary-tree/)
+
+- 结合树的深度
+
+```cpp
+class Solution {
+public:
+    int solve (TreeNode* root, int &ans) {
+        if (!root) return 0;
+        int left_depth = solve(root->left, ans);
+        int right_depth = solve(root->right, ans);
+        ans = max(left_depth + right_depth + 1, ans);
+        return max(left_depth, right_depth) + 1;
+
+    }
+
+    int diameterOfBinaryTree(TreeNode* root) {
+        int ans = 0;
+        solve(root, ans);
+        return ans - 1;
+    }
+};
+```
+
+
+
+### [102. 二叉树的层序遍历](https://leetcode.cn/problems/binary-tree-level-order-traversal/)
+
+- 层序遍历
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> levelOrder(TreeNode* root) {
+        if (!root) return {}; // 注意
+        vector<vector<int>> ans;
+        queue<TreeNode*> q;
+        q.push(root);
+        while(!q.empty()) {
+            vector<int> layer;
+            int n = q.size();
+            while(n--) {
+                auto tmp = q.front();
+                layer.push_back(tmp->val);
+                q.pop();
+                if (tmp->left) q.push(tmp->left); // 注意
+                if (tmp->right) q.push(tmp->right); // 注意
+            }
+            ans.emplace_back(layer);
+        }
+        return ans;
+    }
+};
+```
+
+
+
+### [108. 将有序数组转换为二叉搜索树](https://leetcode.cn/problems/convert-sorted-array-to-binary-search-tree/)
+
+- 闭区间写法
+
+```cpp
+class Solution {
+public:
+    TreeNode* solve(vector<int> &nums, int left, int right) {
+        if (left > right) return nullptr;
+        int mid = left + (right - left) / 2;
+        return new TreeNode(nums[mid], solve(nums, left, mid - 1), solve(nums, mid + 1, right));
+    }
+
+    TreeNode* sortedArrayToBST(vector<int>& nums) {
+        return solve(nums, 0, nums.size() - 1);
+    }
+};
+```
+
+
+
+- 左闭右开区间写法
+
+```cpp
+class Solution {
+public:
+    TreeNode* solve(vector<int> &nums, int left, int right) {
+        if (left == right) return nullptr;
+        int mid = left + (right - left) / 2;
+        return new TreeNode(nums[mid], solve(nums, left, mid), solve(nums, mid + 1, right));
+    }
+
+    TreeNode* sortedArrayToBST(vector<int>& nums) {
+        return solve(nums, 0, nums.size());
+    }
+};
+```
+
+
+
+### [98. 验证二叉搜索树](https://leetcode.cn/problems/validate-binary-search-tree/)
+
+- 简单递归+注意范围+开区间
+
+```cpp
+class Solution {
+public:
+    bool solve (TreeNode* root, long long down, long long up) {
+        if (!root) return true;
+        bool j3 = root->val > down && root->val < up;
+        bool j1 = solve(root->left, down, root->val);
+        bool j2 = solve(root->right, root->val, up);
+        return j3 && j1 && j2;
+    } 
+
+    bool isValidBST(TreeNode* root) {
+        return solve(root, LLONG_MIN, LLONG_MAX); // 双开区间
+    }
+};
+```
+
+
+
+### [230. 二叉搜索树中第 K 小的元素](https://leetcode.cn/problems/kth-smallest-element-in-a-bst/)
+
+- 递归
+
+```cpp
+class Solution {
+public:
+    void solve (TreeNode* root, int &k, int &ans) {
+        if (!root) return;
+        solve(root->left, k, ans);
+        if (--k == 0) ans = root->val;
+        solve(root->right, k, ans);
+    }
+
+    int kthSmallest(TreeNode* root, int k) {
+        int ans = 0;
+        solve(root, k, ans);
+        return ans;
+    }
+};
+```
+
+- 迭代
+
+```cpp
+class Solution {
+public:
+    int kthSmallest(TreeNode* root, int k) {
+        stack<TreeNode*> stk;
+        TreeNode* tmp_node = root;
+        
+        while (!stk.empty() || tmp_node) {
+            while (tmp_node) { // 不断放左孩子
+                stk.push(tmp_node);
+                tmp_node = tmp_node->left;
+            }
+            tmp_node = stk.top();
+            stk.pop();
+            k--;
+            if (k == 0) break;
+            tmp_node = tmp_node->right; // 重新标定一个根，准备放当前跟的全部左孩子
+        }
+        return tmp_node->val;
+    }
+};
+```
+
 
 
 ## 栈
@@ -459,7 +911,59 @@ public:
 
 
 
+### [45. 跳跃游戏 II](https://leetcode.cn/problems/jump-game-ii/)
 
+- S1. 简单贪心
+
+```cpp
+class Solution {
+public:
+    int jump(vector<int>& nums) {
+        int cur_end = 0, max_end = nums[0];
+        int n = nums.size();
+        int ans = 0;
+        for (int i = 0; i < n; i++) {
+            if (cur_end >= n - 1) break; // 能到达，不用再走了
+            max_end = max(i + nums[i], max_end);
+            if (i == cur_end) {
+                cur_end = max_end;
+                ans++;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+
+
+### [763. 划分字母区间](https://leetcode.cn/problems/partition-labels/)
+
+- S1. 简单贪心
+
+```cpp
+class Solution {
+public:
+    vector<int> partitionLabels(string s) {
+        vector<int> ans;
+        int last[26];
+        int n = s.length();
+        for (int i = 0; i < n; i++) {
+            last[s[i] - 'a'] = i;
+        }
+
+        int start = 0, end = 0;
+        for (int i = 0; i < n; i++) {
+            end = max(end, last[s[i] - 'a']);
+            if (i == end) {
+                ans.emplace_back(end - start + 1);
+                start = end + 1;
+            }
+        }
+        return ans;
+    }
+};
+```
 
 
 
