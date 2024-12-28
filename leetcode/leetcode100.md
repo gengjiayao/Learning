@@ -817,6 +817,178 @@ public:
 
 
 
+## 回溯
+
+### [46. 全排列](https://leetcode.cn/problems/permutations/)
+
+- S1. 选数填（自己写的版本）
+
+```cpp
+class Solution {
+    vector<vector<int>> ans;
+    vector<int> cur;
+public:
+    void dfs(vector<int>& nums, bool st[], int u) {
+        if (u == nums.size()) {
+            ans.push_back(cur);
+            return;
+        }
+
+        for (int i = 0; i < nums.size(); i++) {
+            if (!st[i]) {
+                cur.push_back(nums[i]);
+                st[i] = true;
+                dfs(nums, st, u + 1);
+                cur.pop_back();
+                st[i] = false;
+            }
+        }
+    }
+
+    vector<vector<int>> permute(vector<int>& nums) {
+        const int n = nums.size();
+        bool st[n];
+        fill(st, st + n, false);
+        dfs(nums, st, 0);
+        return ans;
+    }
+};
+```
+
+- S2. $Lambda$ 表达式版本
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> permute(vector<int>& nums) {
+        const int n = nums.size();
+        vector<vector<int>> ans;
+        vector<int> path;
+        vector<bool> st(n, false);
+
+        auto dfs = [&](this auto&& dfs, int u)  -> void {
+            if (u == n) {
+                ans.push_back(path);
+                return;
+            }
+
+            for (int i = 0; i < n; i++) {
+                if (!st[i]) {
+                    path.push_back(nums[i]);
+                    st[i] = true;
+                    dfs(u + 1);
+                    st[i] = false;
+                    path.pop_back();
+                }
+            }
+        };
+
+        dfs(0);
+        return ans;
+    }
+};
+```
+
+- S3. 另一种覆盖的方式（速度最快）
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> permute(vector<int>& nums) {
+        const int n = nums.size();
+        vector<vector<int>> ans;
+        vector<int> path(n); // 直接初始化
+        vector<bool> st(n, false);
+
+        auto dfs = [&](this auto&& dfs, int u) -> void {
+            if (u == n) {
+                ans.push_back(path);
+                return;
+            }
+
+            for (int i = 0; i < n; i++) {
+                if (!st[i]) {
+                    path[u] = nums[i]; // 直接覆盖，并且不需要恢复现场
+                    st[i] = true;
+                    dfs(u + 1);
+                    st[i] = false;
+                }
+            }
+        };
+
+        dfs(0);
+        return ans;
+    }
+};
+```
+
+
+
+### 
+
+- S1. 递归（选或不选）
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> ans;
+    vector<int> path;
+
+    void dfs(int cur, vector<int> &nums) {
+        if (cur == nums.size()) {
+            ans.push_back(path);
+            return;
+        }
+        // 选
+        path.push_back(nums[cur]);
+        dfs(cur + 1, nums); 
+        path.pop_back();
+        // 不选
+        dfs(cur + 1, nums); 
+
+    }
+
+    vector<vector<int>> subsets(vector<int>& nums) {
+        dfs(0, nums);
+        return ans;
+    }
+};
+```
+
+- S2. $Lambda$ 表达式（选或不选）
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> subsets(vector<int>& nums) {
+        vector<vector<int>> ans;
+        vector<int> path;
+
+        auto dfs = [&](this auto&& dfs, int cur) -> void {
+            if (cur == nums.size()) {
+                ans.push_back(path);
+                return;
+            }
+            // 选
+            path.push_back(nums[cur]);
+            dfs(cur + 1); 
+            path.pop_back();
+            // 不选
+            dfs(cur + 1); 
+        };
+
+        dfs(0);
+        return ans;
+    }
+};
+```
+
+- S3. 
+
+
+
+
+
 ## 栈
 
 ### [20. 有效的括号](https://leetcode.cn/problems/valid-parentheses/)
@@ -1081,6 +1253,355 @@ public:
 
 
 
+### [139. 单词拆分](https://leetcode.cn/problems/word-break/)
+
+- S1. 枚举每个位置，往前看，看能不能划分
+
+```cpp
+class Solution {
+public:
+    bool wordBreak(string s, vector<string>& wordDict) {
+        int len = s.length();
+        vector<bool> dp(len + 1);
+        int wordDict_len = wordDict.size();
+        dp[0] = true; // 以实下标结尾的字符串可分
+        for (int i = 1; i <= len; i++) { // 实下标
+            for (auto &word : wordDict) {
+                int word_len = word.length();
+                if (i - word_len >= 0 && s.substr(i - word_len, word_len) == word) {
+                    dp[i] = dp[i] || dp[i - word_len]; // 类似取最大值
+                }
+            }
+        }
+        return dp[len];
+    }
+};
+```
+
+- S2. S1的优化
+
+```cpp
+class Solution {
+public:
+    bool wordBreak(string s, vector<string>& wordDict) {
+        const int len = s.length();
+        bool dp[len + 1];
+        memset(dp, 0, sizeof(dp));
+        dp[0] = true; // 以壹起下标，结尾的字符串可分
+
+        for (int i = 1; i <= len; i++) { // 从壹起下标，开始一个一个往前看
+            for (string &word : wordDict) {
+                if (dp[i]) continue; // 因为是类似取最大值，有就过
+                int j = i - word.length();
+                if (j >= 0 && s.substr(j, word.length()) == word) {
+                    dp[i] = dp[j]; // 从前往后走，可省略dp[i]
+                }
+            }
+        }
+        return dp[len];
+    }
+};
+```
+
+- S3. 看每个可划分点，往后推，哪些后边的点是可划分点
+
+```cpp
+class Solution {
+public:
+    bool wordBreak(string s, vector<string>& wordDict) {
+        const int len = s.length();
+        bool dp[len + 1];
+        memset(dp, 0, sizeof(dp)); // fill(dp+1, dp+len+1, false);
+        dp[0] = true;
+
+        for (int i = 0; i < len; i++) {
+            if (!dp[i]) continue;
+            for (string & word : wordDict) {
+                int word_len = word.length();
+                int j = i + word_len;
+                if (j <= len && s.substr(i, word_len) == word) {
+                    dp[j] = true;
+                }
+            }
+        }
+        return dp[len];
+    }
+};
+```
+
+
+
+### [300. 最长递增子序列](https://leetcode.cn/problems/longest-increasing-subsequence/)
+
+- S1. 以 $i$ 结尾的长度（动态规划）
+
+```cpp
+class Solution {
+public:
+    int lengthOfLIS(vector<int>& nums) {
+        const int n = nums.size();
+        int dp[n];
+        memset(dp, 0, sizeof dp);
+
+        for (int i = 0; i < n; i++) {
+            dp[i] = 1;
+            for (int j = 0; j < i; j++) {
+                if (nums[j] < nums[i]) {
+                    dp[i] = max(dp[j] + 1, dp[i]);
+                }
+            }
+        }
+        int ans = 0;
+        for (int i = 0; i < n; i++) 
+            ans = max(ans, dp[i]);
+        
+        return ans;
+    }
+};
+```
+
+- S2. S1小优化
+
+```cpp
+class Solution {
+public:
+    int lengthOfLIS(vector<int>& nums) {
+        const int n = nums.size();
+        vector<int> dp(n);
+
+        for (int i = 0; i < n; i++) {
+            dp[i] = 1;
+            for (int j = 0; j < i; j++) {
+                if (nums[j] < nums[i]) {
+                    dp[i] = max(dp[j] + 1, dp[i]);
+                }
+            }
+        }
+        return ranges::max(dp);
+    }
+};
+```
+
+- S3. 长度为 $i + 1$ 的上升序列最小值（贪心+二分）
+
+```cpp
+class Solution {
+public:
+    int lengthOfLIS(vector<int>& nums) {
+        vector<int> f;
+        for (auto &num : nums) {
+            auto it = ranges::lower_bound(f, num);
+            if (it == f.end()) f.emplace_back(num);
+            else *it = num;
+        }
+        return f.size();
+    }
+};
+```
+
+- S4. S3的展开
+
+```cpp
+class Solution {
+public:
+    // 找到第一个大于等于target的数
+    int lower_bound(const vector<int> &f, const int &target) {
+        int l = 0, r = f.size() - 1;
+        while (l <= r) {
+            int mid = l + (r - l) / 2;
+            if (f[mid] < target) 
+                l = mid + 1;
+            else 
+                r = mid - 1;
+        }
+        return r + 1;
+    }    
+
+    int lengthOfLIS(vector<int>& nums) {
+        vector<int> f;
+        for (auto &num: nums) {
+            int pos = lower_bound(f, num);
+            if (pos == f.size()) 
+                f.push_back(num);
+            else 
+                f[pos] = num;
+        }
+        return f.size();
+    }
+};
+```
+
+
+
+### [152. 乘积最大子数组](https://leetcode.cn/problems/maximum-product-subarray/)
+
+- S1. 动态规划
+
+```cpp
+class Solution {
+public:
+    int maxProduct(vector<int>& nums) {
+        int n = nums.size();
+        vector<int> fmax(n + 1), fmin(n + 1);
+        fmax[0] = fmin[0] = 1;
+        int ans = -1e8;
+        for (int i = 0; i < n; i++) {
+            int num = nums[i];
+            fmax[i + 1] = max({fmax[i] * num, fmin[i] * num, num});
+            fmin[i + 1] = min({fmax[i] * num, fmin[i] * num, num});
+            ans = max(fmax[i + 1], ans);
+        }
+        return ans;
+    }
+};
+```
+
+- S2. S1的空间优化
+
+```cpp
+class Solution {
+public:
+    int maxProduct(vector<int>& nums) {
+        int fmax = 1, fmin = 1; // 总是向后推进，不需要数组
+        int ans = INT_MIN;
+        for (int &num: nums) {
+            int tmp = fmax;
+            fmax = max({fmax * num, fmin * num, num});
+            fmin = min({tmp * num, fmin * num, num});
+            ans = max(fmax, ans);
+        }
+        return ans;
+    }
+};
+```
+
+
+
+### [416. 分割等和子集](https://leetcode.cn/problems/partition-equal-subset-sum/)
+
+- S1. 01背包（空间优化版）
+
+```cpp
+class Solution {
+public:
+    bool canPartition(vector<int>& nums) {
+        int sum = 0;
+        for (int &num : nums) 
+            sum += num;
+        if (sum & 1) 
+            return false;
+        
+        sum = sum >> 1;
+        vector<int> dp(sum + 1);
+        dp[0] = 1;
+
+        for (int &num: nums) {
+            for(int j = sum; j >= num; j--) {
+                dp[j] |= dp[j - num];
+            }
+            if (dp[sum]) return true;
+        }        
+        return false;
+    }
+};
+```
+
+
+
+### [32. 最长有效括号](https://leetcode.cn/problems/longest-valid-parentheses/)
+
+- 动态规划
+
+```cpp
+class Solution {
+public:
+		// 情况分两种：1. ......() 2. .......))
+    int longestValidParentheses(string s) {
+        int ans = 0, n = s.length();
+        vector<int> dp(n);
+
+        for (int i = 1; i < n; i++) {
+            if (s[i] == ')') {
+                if (s[i - 1] == '(') {
+                    dp[i] = 2;
+                    if (i - 2 >= 0) { // 注意数组越界！
+                        dp[i] += dp[i - 2];
+                    }
+                } else if (i - dp[i - 1] - 1 >= 0 && s[i - dp[i - 1] - 1] == '(') { // 注意数组越界！
+                    dp[i] = dp[i - 1] + 2;
+                    if (i - dp[i - 1] - 2 >= 0) { // 注意数组越界！
+                        dp[i] += dp[i - dp[i - 1] - 2];
+                    }
+                }
+            }
+            ans = max(ans, dp[i]);
+        }
+        return ans;
+    }
+};
+```
+
+- 模拟栈（分割思想）
+
+```cpp
+class Solution {
+public:
+    int longestValidParentheses(string s) {
+        int n = s.length();
+        stack<int> stk;
+        stk.push(-1);
+        int ans = 0;
+
+        for (int i = 0; i < n; i++) {
+            if (s[i] == '(') {
+                stk.push(i);
+            } else {
+                stk.pop();
+                if (stk.empty()) {
+                    stk.push(i); // 此时的i为当前遍历的最右分割点
+                } else {
+                    ans = max(ans, i - stk.top());
+                }
+            }
+        }
+        return ans;
+    }
+};
+```
+
+- 技巧
+
+```cpp
+class Solution {
+public:
+    int longestValidParentheses(string s) {
+        int n = s.length();
+        int left = 0, right = 0, ans = 0;
+        for (int i = 0; i < n; i++) {
+            if (s[i] == '(') left++;
+            else right++;
+
+            if (left == right) ans = max(ans, left * 2);
+            else if (right > left) left = right = 0;
+        }
+        left = 0, right = 0;
+        for (int i = n - 1; i >= 0; i--) {
+            if (s[i] == '(') left++;
+            else right++;
+
+            if (left == right) ans = max(ans, right * 2);
+            else if (right < left) left = right = 0;
+        }
+
+        return ans;
+    }
+};
+```
+
+
+
+
+
 ## 多维动态规划
 
 ### [62. 不同路径](https://leetcode.cn/problems/unique-paths/)
@@ -1179,6 +1700,235 @@ public:
                 else f[j] = min(f[j], f[j - 1]) + grid[i][j];
                 
         return f[n - 1];
+    }
+};
+```
+
+
+
+### [5. 最长回文子串](https://leetcode.cn/problems/longest-palindromic-substring/)
+
+- S1. 动态规划
+
+```cpp
+class Solution {
+public:
+    string longestPalindrome(string s) {
+        const int n = s.length();
+        int dp[n][n];
+        memset(dp, 0, sizeof dp);
+
+        for (int i = 0; i < n; i++) dp[i][i] = 1;
+
+        int l = 0, r = 0, ans = 1;
+        for (int i = n - 2; i >= 0; i--) { // 由于更新要用到下一行，所以要倒着走
+            for (int j = i + 1; j < n; j++) {
+                if (i + 1 == j) {
+                    if (s[i] == s[j]) {
+                        dp[i][j] = 1;
+                        if (j - i + 1 > ans) {
+                            ans = j - i + 1;
+                            l = i, r = j;
+                        } 
+                    }
+                } else {
+                    if (s[i] == s[j] && dp[i + 1][j - 1] == 1) {
+                        dp[i][j] = 1;
+                        if (j - i + 1 > ans) {
+                            ans = j - i + 1;
+                            l = i, r = j;
+                        }
+                    }
+                }
+            }
+        }
+        return s.substr(l, r - l + 1);
+    }
+};
+```
+
+- S2. S1优化
+
+```cpp
+class Solution {
+public:
+    string longestPalindrome(string s) {
+        const int n = s.length();
+        int dp[n][n];
+        memset(dp, 0, sizeof dp);
+        for (int i = 0; i < n; i++) dp[i][i] = 1;
+
+        int l = 0, ans = 1;
+        for (int i = n - 2; i >= 0; i--) { // 由于更新要用到下一行，所以要倒着走
+            for (int j = i + 1; j < n; j++) {
+                if (s[i] == s[j] && (dp[i + 1][j - 1] || i + 1 == j)) { // 合并两种情况
+                    dp[i][j] = 1;
+                    if (j - i + 1 > ans) {
+                        ans = j - i + 1;
+                        l = i;
+                    }
+                }
+            }
+        }
+        return s.substr(l, ans);
+    }
+};
+```
+
+- S3. 中心扩展算法（主动去暴力查询每个中心能构成的最长串）
+
+```cpp
+class Solution {
+public:
+    int findMaxLen (const string &s, int l, int r) {
+        const int n = s.length();
+        while (l >= 0 && r < n && s[l] == s[r]) {
+            l--;
+            r++;
+        }
+        return r - l - 1;
+    }
+
+    string longestPalindrome(string s) {
+        int ans = 1, start = 0;
+        const int n = s.length();
+        for (int i = 0; i < n; i++) {
+            int odd = findMaxLen(s, i, i); // 回文串可能是奇数串
+            int even = findMaxLen(s, i, i + 1);
+            int localMax = max(even, odd);
+            if (ans < localMax) {
+                ans = localMax;
+                start = i - (localMax - 1) / 2; // 要推出这个
+            }
+        }
+        return s.substr(start, ans);
+    }
+};
+```
+
+- S4. $Manacher$ 算法（马拉车）
+
+```cpp
+```
+
+
+
+### [1143. 最长公共子序列](https://leetcode.cn/problems/longest-common-subsequence/)
+
+- S1. 基本动态规划
+
+```cpp
+class Solution {
+public:
+    int longestCommonSubsequence(string text1, string text2) {
+        const int x = text1.length();
+        const int y = text2.length();
+
+        int dp[x + 1][y + 1];
+
+        for (int i = 0; i <= x; i++) dp[i][0] = 0;
+        for (int j = 0; j <= y; j++) dp[0][j] = 0;
+
+        for (int i = 1; i <= x; i++) {
+            for (int j = 1; j <= y; j++) {
+                if (text1[i - 1] == text2[j - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1] + 1;
+                } else {
+                    dp[i][j] = max(dp[i][j - 1], dp[i - 1][j]);
+                }
+            }
+        }
+        return dp[x][y];
+    }
+};
+```
+
+- S2. S1空间优化
+
+```cpp
+class Solution {
+public:
+    int longestCommonSubsequence(string text1, string text2) {
+        const int x = text1.length();
+        const int y = text2.length();
+
+        int dp[y + 1];
+
+        for (int j = 0; j <= y; j++) dp[j] = 0;
+
+        for (int i = 1; i <= x; i++) {
+            int pre = 0; // 记录的是dp[i-1][j-1]
+            for (int j = 1; j <= y; j++) {
+                int tmp = dp[j];
+                if (text1[i - 1] == text2[j - 1]) dp[j] = pre + 1;
+                else dp[j] = max(dp[j - 1], dp[j]);
+                pre = tmp;
+            }
+        }
+        return dp[y];
+    }
+};
+```
+
+
+
+### [72. 编辑距离](https://leetcode.cn/problems/edit-distance/)
+
+- S1. 基本动态规划
+
+```cpp
+class Solution {
+public:
+    int minDistance(string s1, string s2) {
+        const int len1 = s1.length();
+        const int len2 = s2.length();
+
+        int dp[len1 + 1][len2 + 1];
+        
+        for (int i = 0; i <= len2; i++) dp[0][i] = i;
+        for (int i = 0; i <= len1; i++) dp[i][0] = i;
+
+        for (int i = 1; i <= len1; i++) {
+            for (int j = 1; j <= len2; j++) {
+                if (s1[i - 1] == s2[j - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1];
+                } else {
+                    dp[i][j] = min({dp[i][j - 1], dp[i - 1][j], dp[i - 1][j - 1]}) + 1;
+                }
+            }
+        } 
+        return dp[len1][len2];
+    }
+};
+```
+
+- S2. S1空间优化
+
+```cpp
+class Solution {
+public:
+    int minDistance(string s1, string s2) {
+        const int len1 = s1.length();
+        const int len2 = s2.length();
+
+        int dp[len2 + 1];
+        
+        for (int i = 0; i <= len2; i++) dp[i] = i;
+
+        for (int i = 1; i <= len1; i++) {
+            int pre = dp[0];
+            dp[0]++; // 更新下一个，对应对[i]的初始化
+            for (int j = 1; j <= len2; j++) {
+                int tmp = dp[j];
+                if (s1[i - 1] == s2[j - 1]) dp[j] = pre;
+              	// dp[j - 1] 已经更新过  代表dp[i][j - 1]
+              	// dp[j] 还没有更新  代表dp[i - 1][j]
+                // pre 代表dp[i - 1][j - 1]
+                else dp[j] = min({dp[j - 1], dp[j], pre}) + 1;
+                pre = tmp;
+            }
+        } 
+        return dp[len2];
     }
 };
 ```

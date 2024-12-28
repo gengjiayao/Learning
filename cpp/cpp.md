@@ -46,7 +46,102 @@ int main() {
 
 
 
+### 一些实例
 
+- 函数递归调用
+
+  ```cpp
+  // 写法1
+  vector<vector<int>> subsets(vector<int>& nums) {
+      vector<vector<int>> ans;
+      vector<int> path;
+  
+      auto dfs = [&](this auto&& dfs, int cur) -> void {
+          if (cur == nums.size()) {
+              ans.push_back(path);
+              return;
+          }
+          // 选
+          path.push_back(nums[cur]);
+          dfs(cur + 1); 
+          path.pop_back();
+          // 不选
+          dfs(cur + 1); 
+      };
+  
+      dfs(0);
+      return ans;
+  }
+  
+  // 写法2 换掉参数内的dfs名称
+  vector<vector<int>> subsets(vector<int>& nums) {
+      vector<vector<int>> ans;
+      vector<int> path;
+  
+      auto dfs = [&](this auto&& nihao, int cur) -> void {
+          if (cur == nums.size()) {
+              ans.push_back(path);
+              return;
+          }
+          // 选
+          path.push_back(nums[cur]);
+          nihao(cur + 1); 
+          path.pop_back();
+          // 不选
+          nihao(cur + 1); 
+      };
+  
+      dfs(0);
+      return ans;
+  }
+  
+  
+  // 写法3 不写this
+  vector<vector<int>> subsets(vector<int>& nums) {
+      vector<vector<int>> ans;
+      vector<int> path;
+  
+      auto dfs = [&](auto&& dfs, int cur) -> void {
+          if (cur == nums.size()) {
+              ans.push_back(path);
+              return;
+          }
+          // 选
+          path.push_back(nums[cur]);
+          dfs(dfs, cur + 1); 
+          path.pop_back();
+          // 不选
+          dfs(dfs, cur + 1); 
+      };
+  
+      dfs(dfs, 0);
+      return ans;
+  }
+  
+  // 写法4 不写auto 效率会慢
+  vector<vector<int>> subsets(vector<int>& nums) {
+      vector<vector<int>> ans;
+      vector<int> path;
+  
+      function<void(int)> dfs = [&](int cur) -> void {
+          if (cur == nums.size()) {
+              ans.push_back(path);
+              return;
+          }
+          // 选
+          path.push_back(nums[cur]);
+          dfs(cur + 1); 
+          path.pop_back();
+          // 不选
+          dfs(cur + 1); 
+      };
+  
+      dfs(0);
+      return ans;
+  }
+  ```
+
+  
 
 
 
