@@ -1,7 +1,5 @@
 <center><h1>Conweave Learning</h1></center>
 
-
-
 ### ns3启动流程
 
 - `run.py`：`os.system` 函数执行 `./waf --run 'scratch/network-load-lanbace {config_name}`，`config_name` 为配置文件。
@@ -60,7 +58,7 @@ RdmaClient --> RdmaDriver --> RdmaHw --> QbbNetDevice --> Swich节点发送
 
 - `seq-ts-header` 相关修改
 
-  - 两处？`seq-ts-header.h` 的 `public` 字段添加 `test_udp` 字段。
+  - `seq-ts-header.h` 的 `public` 字段添加 `test_udp` 字段。
   - `seq-ts-header.cc` 中 `SeqTsHeader::GetHeaderSize`函数：
     - 也就是`seq-ts-header.h` 中 `virtual uint32_t GetSerializedSize (void) const;` 的具体实现， `+4`。
   - `seq-ts-header.cc` 中 `SeqTsHeader::Serialize` 函数：
@@ -72,7 +70,7 @@ RdmaClient --> RdmaDriver --> RdmaHw --> QbbNetDevice --> Swich节点发送
 
 - `custom-header` 相关修改
 
-  - 两处？`custom-header.h` 的 `udp` 结构体中添加 `test_udp` 字段。
+  - `custom-header.h` 的 `udp` 结构体中添加 `test_udp` 字段。
   - `custom-header.cc` 中 `CustomHeader::GetUdpHeaderSize` 函数：
     - `+ sizeof(udp.test_udp)`
   - `custom-header.cc` 中 `CustomHeader::Serialize` 函数：
@@ -86,7 +84,7 @@ RdmaClient --> RdmaDriver --> RdmaHw --> QbbNetDevice --> Swich节点发送
 
 - `seq-ts-header` 相关修改
   - `seq-ts-header.h` 头文件
-    - 两处？添加 `SetTestUDP` 和 `GetTestUDP` 的函数声明。
+    - 添加 `SetTestUDP` 和 `GetTestUDP` 的函数声明。
   - `seq-ts-header.cc` 实现文件
     - 添加 `SeqTsHeader::SetTestUDP` 和 `SeqTsHeader::GetTestUDP` 的函数实现。
 
@@ -95,21 +93,19 @@ RdmaClient --> RdmaDriver --> RdmaHw --> QbbNetDevice --> Swich节点发送
 #### $udp$ 相关成员变量值的设置
 
 - `RdmaHw::GetNxtPacket` 相关修改：
-  - 设置 `test_udp` 的值：`seqTs.SetTestUDP(20240000);` 
+  - 设置 `test_udp` 的值：`seqTs.SetTestUDP(FFFFFFFF);` 
 
 
 
 #### $udp$ 相关修改在接收方的检查
 
-- 在 `generate ACK or NACK` 上方添加检查：
+- 在 `generate ACK or NACK` 上方添加检查。
 
-- ```cpp
-  if (ch.udp.test_udp == 20240000) {
-      printf("receive success test_udp: %d\n", ch.udp.test_udp);
-  }
-  ```
 
-- 
+
+#### $IntHeader$ 部分如何更新
+
+- 在 `point-to-point/model/switch-node.cc` 中，需要根据 $Header$ 的大小找到 $IntHeader$ 的起始位置，一定注意这里如果修改了对应的报头，要在这儿修改字节数，以便找到对应的位置！！
 
 
 
@@ -121,3 +117,29 @@ RdmaClient --> RdmaDriver --> RdmaHw --> QbbNetDevice --> Swich节点发送
 - 调用 `packet->PeekHeader(ch)` 函数去填充 `ch`，调用 `header.Deserialize` 函数
   - `PeekHeader` 是 `packer.cc` 中的函数，传入的参数是 `CustomHeader` 数据类型的 `ch`，由于 `CustomHeader` 继承于 `Header`，所以 `Header` 中具体的虚函数由 `CustomHeader::Deserialize` 具体完成。
 
+
+
+### 测试命令
+
+（只是记录一下，方便拷贝）
+
+```shell
+python3 run.py --cc hpcc --lb letflow --pfc 1 --irn 0 --simul_time 0.1 --netload 50 --topo leaf_spine_128_100G_OS2
+```
+
+
+
+### 注意
+
+- `build` 文件夹中的头文件不需要更改，对应的文件在 `src` 中都有体现，只需要修改 `src` 中的头文件，然后 `./waf`，`build` 文件夹中的相关信息将自动更新。
+- `IntHeader` 更新位置在：`point-to-point/model/switch-node.cc`，进行了强制类型转换。
+
+
+
+### 当前问题（不影响核心算法调度）
+
+- `udp` 数据包修改字段存在问题，会与 `hpcc` 算法冲突，目前表现在 `test_udp` 与 `intHop` 共用一个字段。
+  - 猜想1：对齐问题？不是！换了1字节、2字节、4字节都有这个问题。
+  - 猜想2：`union` 没有初始化？不是！在构造函数中强制指定使用这个 `union` 结果依旧。
+  - 猜想3：结构体中的变量定义顺序有影响吗？可能有影响！放在前面就没问题了！！！
+    - 结构体先定义自己的变量，并且写在私有空间，并且在进行 `Serialize` 等操作时，操作自己的变量先于 `IntHeader`。
