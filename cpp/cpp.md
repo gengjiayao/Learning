@@ -2,6 +2,29 @@
 
 
 
+## 巧用构造函数
+
+```cpp
+outboundMsgMap.emplace(std::piecewise_construct, 
+                       std::forward_as_tuple(msgId),
+                       std::forward_as_tuple(sendMsg, this, msgId, reqUnschedDataVec));
+
+OutboundMessage* outboundMsg = &(outboundMsgMap.at(msgId));
+```
+
+- 前者将创建键值对，后者在指定这个值的时候，会自动调用构造函数，因为其中的 $OutBoundMessage$ 有如下构造函数：
+
+```cpp
+explicit OutboundMessage(AppMessage* outMsg,
+                         SendController* sxController,
+                         uint64_t msgId,
+                         std::vector<uint16_t> reqUnschedDataVec);
+```
+
+
+
+
+
 ## Lambda表达式
 
 ### 基本语法

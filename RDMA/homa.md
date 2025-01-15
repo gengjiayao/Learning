@@ -1,5 +1,27 @@
 <center><h1>Homa</h1></center>
 
+## 整体运行逻辑
+
+- $Homa$ 是消息驱动的模拟器
+  - $AppMessage$ 是应用层传递的消息，该消息通过处理，处理成 $OutboundMessage$。
+  - $OutboundMessage$ 是 $homa$ 层面的消息，进行后续处理和调度。
+    - 
+- 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## 授权相关机制
 
 - 执行过程
