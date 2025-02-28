@@ -141,22 +141,37 @@ int main() {
   }
   ```
 
-  
 
 
 
 
 
+## STL
+
+### vector
+
+- 清空：`clear`
+
+
+
+### string
+
+- 删除最后字符：`pop_back`
 
 
 
 
 
+## 特性
 
+### ranges
 
+- $ranges::sort()$
 
-
-
+```cpp
+// 默认升序排序，可以使用Lambda表达式自定义排序函数
+std::ranges::sort(); 
+```
 
 
 

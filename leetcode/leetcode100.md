@@ -817,6 +817,93 @@ public:
 
 
 
+## 图论
+
+### [200. 岛屿数量](https://leetcode.cn/problems/number-of-islands/)
+
+- $DFS$（自己写的版本）
+
+```cpp
+class Solution {
+public:
+    int numIslands(vector<vector<char>>& grid) {
+        int row = grid.size();
+        int col = grid[0].size();
+
+        vector<vector<int>> st(row, vector<int>(col));
+        int ans = 0;
+
+        auto dfs = [&] (this auto&& dfs, int i, int j) {
+            if (i < 0 || i >= row || j < 0 || j >= col || st[i][j]) return;
+
+            if (grid[i][j] == '1') {
+                st[i][j] = 1;
+                dfs(i - 1, j);
+                dfs(i, j - 1);
+                dfs(i + 1, j);
+                dfs(i, j + 1);
+            }
+        };
+
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++) {
+                if (!st[i][j] && grid[i][j] == '1') {
+                    ans++;
+                    dfs(i, j);
+                }
+            }
+        }
+        return ans;
+    }
+};
+```
+
+- S2. $DFS$ 速度更快
+
+```cpp
+class Solution {
+public:
+    int numIslands(vector<vector<char>>& grid) {
+        int row = grid.size();
+        int col = grid[0].size();
+
+        int ans = 0;
+				// 这么写相当于少了边界条件的递归
+        auto dfs = [&] (this auto&& dfs, int i, int j) -> void {
+            grid[i][j] = '0';
+            if (i - 1 >= 0 && grid[i - 1][j] == '1') dfs(i - 1, j);
+            if (j - 1 >= 0 && grid[i][j - 1] == '1') dfs(i, j - 1);
+            if (i + 1 < row && grid[i + 1][j] == '1') dfs(i + 1, j);
+            if (j + 1 < col && grid[i][j + 1] == '1') dfs(i, j + 1);
+        };
+
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++) {
+                if (grid[i][j] == '1') {
+                    ans++;
+                    dfs(i, j);
+                }
+            }
+        }
+        return ans;
+    }
+};
+```
+
+- S3. $BFS$ 做法
+
+```cpp
+
+```
+
+- S4. 并查集做法
+
+```cpp
+
+```
+
+
+
 ## 回溯
 
 ### [46. 全排列](https://leetcode.cn/problems/permutations/)
@@ -924,9 +1011,9 @@ public:
 
 
 
-### 
+### [78. 子集](https://leetcode.cn/problems/subsets/)
 
-- S1. 递归（选或不选）
+- S1. 选或不选：递归
 
 ```cpp
 class Solution {
@@ -955,7 +1042,7 @@ public:
 };
 ```
 
-- S2. $Lambda$ 表达式（选或不选）
+- S2. 选或不选：$Lambda$ 表达式
 
 ```cpp
 class Solution {
@@ -983,7 +1070,622 @@ public:
 };
 ```
 
+- S3. 枚举选哪个
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> subsets(vector<int>& nums) {
+        const int n = nums.size();
+        vector<vector<int>> ans;
+        vector<int> path;
+
+        auto dfs = [&] (this auto&& dfs, int cur) -> void { // 此时没有return语句，要显示写出返回类型
+            ans.push_back(path);
+            for (int i = cur; i < n; i++) {
+                path.push_back(nums[i]);
+                dfs(i + 1);
+                path.pop_back();
+            }
+        };
+
+        dfs(0);
+        return ans;
+    }
+};
+```
+
+- S4. 二进制枚举
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> subsets(vector<int>& nums) {
+        const int n = nums.size();
+        vector<vector<int>> ans;
+        vector<int> path;
+
+        for (int mask = 0; mask < (1 << n); mask++) {
+            path.clear();
+            for (int i = 0; i < n; i++)
+                if (mask & (1 << i)) 
+                    path.push_back(nums[i]);
+            ans.push_back(path);
+        }
+    
+        return ans;
+    }
+};
+```
+
+
+
+### [17. 电话号码的字母组合](https://leetcode.cn/problems/letter-combinations-of-a-phone-number/)
+
+- S1. 组合
+
+```cpp
+class Solution {
+public:
+    vector<string> letterCombinations(string digits) {
+        unordered_map<int, string> hash = {
+            {2, "abc"}, {3, "def"}, {4, "ghi"}, {5, "jkl"}, 
+            {6, "mno"}, {7, "pqrs"}, {8, "tuv"}, {9, "wxyz"}
+        };
+
+        string path;
+        vector<string> ans;
+        const int n = digits.length();
+
+        if (n == 0) return {};
+        
+        auto dfs = [&](this auto&& dfs, int cur) {
+            if (cur == n) {
+                ans.push_back(path);
+                return;
+            }
+            string ss = hash[digits[cur] - '0'];
+            for (int i = 0; i < ss.length(); i++) {
+                path += ss[i];
+                dfs(cur + 1);
+                path.pop_back();
+            }
+        };
+
+        dfs(0);
+        return ans;
+    }
+};
+```
+
+
+
+### [39. 组合总和](https://leetcode.cn/problems/combination-sum/)
+
+- S1. 递归未剪枝
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> combinationSum(vector<int>& candidates, int target) {
+        const int n = candidates.size();
+
+        vector<int> path;
+        vector<vector<int>> ans;
+        int sum = 0;
+        auto dfs = [&] (this auto&& dfs, int cur) {
+            if (sum == target) {
+                ans.push_back(path);
+                return;
+            }
+            
+            if (sum > target || cur == n) return;
+
+            // 选
+            sum += candidates[cur];
+            path.push_back(candidates[cur]);
+            dfs(cur);
+            path.pop_back();
+            sum -= candidates[cur];
+
+            // 不选
+            dfs(cur + 1);
+        };
+
+        dfs(0);
+        return ans;
+    }
+};
+```
+
+- S2. S1剪枝
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> combinationSum(vector<int>& candidates, int target) {
+        const int n = candidates.size();
+        ranges::sort(candidates); // 这个sort更快
+
+        vector<int> path;
+        vector<vector<int>> ans;
+        int sum = 0;
+      
+      	// 考虑当前cur位置，选还是不选
+        auto dfs = [&] (this auto&& dfs, int cur) {
+            if (sum == target) {
+                ans.push_back(path);
+                return;
+            }
+            
+            // 合并了下面两条语句
+            // 注意！cur == n 在前，因为要保证candidates[cur]不越界
+            if (cur == n || target - sum < candidates[cur]) return;
+
+            // if (sum > target || cur == n) return;
+            // if (target - sum < candidates[cur]) return; // 剪枝
+
+            // 选
+            sum += candidates[cur];
+            path.push_back(candidates[cur]);
+            dfs(cur);
+            path.pop_back();
+            sum -= candidates[cur];
+
+            // 不选
+            dfs(cur + 1);
+        };
+
+        dfs(0);
+        return ans;
+    }
+};
+```
+
+- S3. 枚举从哪开始选
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> combinationSum(vector<int>& candidates, int target) {
+        const int n = candidates.size();
+        ranges::sort(candidates); // 排序后可剪枝
+
+        vector<int> path;
+        vector<vector<int>> ans;
+        int sum = 0;
+
+        // 选到cur位置了，从这个位置继续看后面
+        auto dfs = [&] (this auto&& dfs, int cur) {
+            if (sum == target) {
+                ans.push_back(path);
+                return;
+            }
+            
+            // 合并了下面两条语句
+            if (target - sum < candidates[cur]) return;
+
+            // if (sum > target) return;
+            // if (target - sum < candidates[cur]) return; // 剪枝
+
+            for (int i = cur; i < n; i++) {
+                sum += candidates[i];
+                path.push_back(candidates[i]);
+                dfs(i); // 这里因为for循环的限制，保证了不会越界，所以不需要判断cur == n的情况
+                sum -= candidates[i];
+                path.pop_back();
+            }
+        };
+
+        dfs(0);
+        return ans;
+    }
+};
+```
+
+- S4. 完全背包预处理
+
+```cpp
+class Solution {
+public:
+    vector<vector<int>> combinationSum(vector<int>& candidates, int target) {
+        const int n = candidates.size();
+        
+        // dp[i][j] 考虑前i个，target为j，是否有组合方案
+        vector dp(n + 1, vector<int>(target + 1));
+        dp[0][0] = 1;
+
+        // j从0开始是因为：这是在考虑能不能恰好装满，而不是考虑装满的最大/最小价值
+        // 也就是说dp[1][3] = 1 那么dp[2][3]也应该等于1，i = 2的时候不应该限制j的遍历初始值
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j <= target; j++) {
+                if (dp[i][j] || j >= candidates[i] && dp[i + 1][j - candidates[i]])
+                    dp[i + 1][j] = 1;
+            }
+        }
+        
+        vector<int> path;
+        vector<vector<int>> ans;
+        int sum = 0;
+
+        auto dfs = [&] (this auto&& dfs, int cur) {
+            if (sum == target) {
+                ans.push_back(path);
+                return;
+            }
+
+            if (target - sum >= 0 && dp[cur + 1][target - sum]) {
+                // 选
+                path.push_back(candidates[cur]);
+                sum += candidates[cur];
+                dfs(cur);
+                sum -= candidates[cur];
+                path.pop_back();
+
+                // 不选
+                dfs(cur - 1);
+            }
+        };
+
+        dfs(n - 1); // 倒着递归，因为dp的定义是前i个能否组成target，得在当前向前找
+        return ans;
+    }
+};
+```
+
+
+
+### [22. 括号生成](https://leetcode.cn/problems/generate-parentheses/)
+
+- S1. 第一次做的回溯思路
+
+```cpp
+class Solution {
+public:
+    vector<string> generateParenthesis(int n) {
+        vector<string> ans;
+        string path; // 没有初始化，一点点更新出来，速度会慢一点
+        auto dfs = [&] (this auto&& dfs, int l, int r) {
+            if (l == n && r == n) {
+                ans.push_back(path);
+                return;
+            }
+
+            if (l < n) {
+                path += '(';
+                dfs(l + 1, r);
+                path.pop_back();
+            }
+
+            if (r < l) {
+                path += ')';
+                dfs(l, r + 1);
+                path.pop_back();
+            }
+        };
+
+        dfs(0, 0);
+        return ans;
+    }
+};
+```
+
+- S2. S1的速度优化
+
+```cpp
+class Solution {
+public:
+    vector<string> generateParenthesis(int n) {
+        vector<string> ans;
+        int m = 2 * n;
+        string path(m, 0); // 先初始化，后续直接覆盖
+        auto dfs = [&] (this auto&& dfs, int l, int r) {
+            if (l + r == m) {
+                ans.push_back(path);
+                return;
+            }
+
+            if (l < n) {
+                path[l + r] = '(';
+                dfs(l + 1, r);
+            }
+
+            if (r < l) {
+                path[l + r] = ')';
+                dfs(l, r + 1);
+            }
+        };
+
+        dfs(0, 0);
+        return ans;
+    }
+};
+```
+
+- S3. 枚举左括号的位置
+
+```cpp
+class Solution {
+public:
+    vector<string> generateParenthesis(int n) {
+        vector<string> ans;
+        vector<int> path; // 记录左括号位置
+        const int m = 2 * n;
+
+        // dfs(i, j) 表示当前填了i个左括号，j个右括号
+        auto dfs = [&] (this auto&& dfs, int l, int r) {
+            if (l == n) { // 左括号够数就行了，剩下的都给右括号
+                string tmp(m, ')');
+                for (int p : path) {
+                    tmp[p] = '(';
+                }
+                ans.push_back(tmp);
+                return;
+            }
+
+            for (int i = 0; i <= l - r; i++) {
+                // i 表示目前还可以填的右括号的个数
+                path.push_back(l + r + i); // l+r+i 这个位置填一个左括号
+                dfs(l + 1, r + i);
+                path.pop_back();
+            }
+        };
+
+        dfs(0, 0);
+        return ans;
+    }
+};
+```
+
+
+
+### [79. 单词搜索](https://leetcode.cn/problems/word-search/)
+
+- S1. $DFS$ 自己的版本（确定能匹配了再进入搜索）
+
+```cpp
+class Solution {
+public:
+    bool exist(vector<vector<char>>& board, string word) {
+        const int row = board.size();
+        const int col = board[0].size();
+
+        const int n = word.length();     
+        bool flag = false;
+
+        auto dfs = [&] (this auto&& dfs, int i, int j, int cur) {
+            if (cur == n) {
+                flag = true;
+                return;
+            } 
+
+            board[i][j] = 0;
+            if (i - 1 >= 0 && board[i - 1][j] == word[cur]) dfs(i - 1, j, cur + 1);
+            if (j - 1 >= 0 && board[i][j - 1] == word[cur]) dfs(i, j - 1, cur + 1);
+            if (i + 1 < row && board[i + 1][j] == word[cur]) dfs(i + 1, j, cur + 1);
+            if (j + 1 < col && board[i][j + 1] == word[cur]) dfs(i, j + 1, cur + 1);
+            board[i][j] = word[cur - 1];
+        };
+
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++) {
+                if (!flag && board[i][j] == word[0]) {
+                    dfs(i, j, 1);
+                }
+            }   
+        }
+        return flag;
+    }
+};
+```
+
+- S2. S1优化
+
+```cpp
+class Solution {
+public:
+    bool exist(vector<vector<char>>& board, string word) {
+        const int row = board.size();
+        const int col = board[0].size();
+
+        const int n = word.length();     
+        bool flag = false;
+				
+      	// 优化1: 考察board与word中字符数量
+        unordered_map<char, int> cnt;
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++) {
+                cnt[board[i][j]]++;
+            }
+        }
+
+        unordered_map<char, int> word_cnt;
+        for (auto &c : word){
+           if (++word_cnt[c] > cnt[c]) {
+            return false;
+           }
+        }
+				
+        // 优化2: 让word更少的头或者尾开头，匹配的次数更少
+        if (cnt[word.back()] < cnt[word[0]]) {
+            ranges::reverse(word);
+        }
+
+        auto dfs = [&] (this auto&& dfs, int i, int j, int cur) {
+            if (cur == n) {
+                flag = true;
+                return;
+            } 
+
+            board[i][j] = 0;
+            if (i - 1 >= 0 && board[i - 1][j] == word[cur]) dfs(i - 1, j, cur + 1);
+            if (j - 1 >= 0 && board[i][j - 1] == word[cur]) dfs(i, j - 1, cur + 1);
+            if (i + 1 < row && board[i + 1][j] == word[cur]) dfs(i + 1, j, cur + 1);
+            if (j + 1 < col && board[i][j + 1] == word[cur]) dfs(i, j + 1, cur + 1);
+            board[i][j] = word[cur - 1];
+        };
+
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++) {
+                if (!flag && board[i][j] == word[0]) {
+                    dfs(i, j, 1);
+                }
+            }   
+        }
+        return flag;
+    }
+};
+```
+
+- S3. 其他搜索（先进 $dfs$ 再检测是否能匹配）
+
+```cpp
+class Solution {
+public:
+    bool exist(vector<vector<char>>& board, string word) {
+        int d[4][2] = {{0, 1}, {0, -1}, {1, 0}, {-1 ,0}};
+
+        const int row = board.size();
+        const int col = board[0].size();
+        const int n = word.length();     
+
+        unordered_map<char, int> cnt;
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++) {
+                cnt[board[i][j]]++;
+            }
+        }
+
+        unordered_map<char, int> word_cnt;
+        for (auto &c : word){
+           if (++word_cnt[c] > cnt[c]) {
+            return false;
+           }
+        }
+
+        if (cnt[word.back()] < cnt[word[0]]) {
+            ranges::reverse(word);
+        }
+
+        auto dfs = [&] (this auto&& dfs, int i, int j, int cur) -> bool {
+            if (board[i][j] != word[cur]) return false;
+            if (cur + 1 == n) return true;
+            
+            board[i][j] = 0;
+            for (auto& [dx, dy] : d) {
+                int x = i + dx;
+                int y = j + dy;
+                if (x >= 0 && x < row && y >= 0 && y < col && dfs(x, y, cur + 1)) {
+                    return true;
+                }
+            }
+            board[i][j] = word[cur];
+            return false;
+        };
+
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++) {
+                if(dfs(i, j, 0)) {
+                    return true;
+                }
+            }   
+        }
+        return false;
+    }
+};
+```
+
+
+
+### [131. 分割回文串](https://leetcode.cn/problems/palindrome-partitioning/)
+
+- S1. 枚举每一个空位
+
+```cpp
+class Solution {
+public:
+    bool findit(string& s, int left, int right) {
+        while (left <= right) {
+            if (s[left++] != s[right--]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    vector<vector<string>> partition(string s) {
+        vector<vector<string>> ans;
+        vector<string> path;
+        const int n = s.length();
+
+        auto dfs = [&] (this auto&& dfs, int left, int right) {
+            if (right == n) {
+                ans.push_back(path);
+                return;
+            }
+
+            // right不是最后一个
+            if (right < n - 1) {
+                dfs(left, right + 1);
+            }
+
+            if (findit(s, left, right)) {
+                path.push_back(s.substr(left, right - left + 1));
+                dfs(right + 1, right + 1);
+                path.pop_back();
+            }
+        };
+        dfs(0, 0);
+        return ans;
+    }
+};
+```
+
+- S2. 枚举每一个串的结束位置
+
+```cpp
+class Solution {
+public:
+    bool findit(string& s, int left, int right) {
+        while (left <= right) {
+            if (s[left++] != s[right--]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    vector<vector<string>> partition(string s) {
+        vector<vector<string>> ans;
+        vector<string> path;
+        const int n = s.length();
+
+        auto dfs = [&] (this auto&& dfs, int start) {
+            if (start == n) {
+                ans.push_back(path);
+                return;
+            }
+
+            for (int i = start; i < n; i++) {
+                if (findit(s, start, i)) {
+                    path.push_back(s.substr(start, i - start + 1));
+                    dfs(i + 1);
+                    path.pop_back();
+                }
+            }
+            
+        };
+
+        dfs(0);
+        return ans;
+    }
+};
+```
+
 - S3. 
+
+```cpp
+```
 
 
 
