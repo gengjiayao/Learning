@@ -1,5 +1,70 @@
 <center><h1>Homa</h1></center>
 
+## 整体运行逻辑
+
+### 从应用程序接受消息开始
+
+#### 第一次发送
+
+- $handleMessage$：
+  - 消息传入，如果是上层 $appIn$，则进入 `sxController.processSendMsgFromApp` 进行处理。
+- $processSendMsgFromApp$：
+  - 消息数据包括：请求数据、未调度数据。
+  - 通过 `getReqUnschedDataPkts` 函数将消息的数据处理成许多数据包，存放在 `reqUnschedDataVec` 中。
+  - 通过 `forward_as_tuple` 隐式调用了 `outboundMsg` 的构造函数，这使得自定义的消息中含有了各个数据包大小的信息。
+  - 调用 ` prepareRequestAndUnsched` 函数准备请求与未调度的数据包。
+- $prepareRequestAndUnsched$：
+  - 通过 `getUnschedPktsPrio` 函数得到每一个数据包对应的优先级。
+  - 在 `prioUnschedBytes` 的数组中，以两位为一组，保存全部数据包的优先级和未调度数据大小。
+  - 不断构造数据包 `HomaPkt`，实际的变量名称为 `unschedPkt`，构造完成便将其放入消息对象的 `txPkts` 优先队列中。
+  - `txPkts` 优先队列的排序逻辑如下：
+    - 看起始字节大小，起始字节大的优先；
+    - 看创建时间早晚，创建时间晚的优先；
+    - 看优先级高低，优先级高的优先。
+  - （这样看来，每个消息都有一个优先队列？这个排序真的可以这样吗？）
+- 把自定义的消息插入到 `outbndMsgSet` 中，此时 `outbndMsgSet.size()` 是 $1$。
+- $sendOrQueue$：
+  - 此时调用传入的参数是空，也就是说 `msg` 为空，分支判断逻辑将进入下方传参为空的判断中。
+  - 如果当前 `sendtimer` 被调度了，证明当前忙，直接返回，否则继续向下判断。
+  - 调用 `getTransmitReadyPkt` 函数，从 `txPkts` 中获得一个最优先发送的包，给到 `sxPkt`。
+  - 调用 `sendPktAndScheduleNext` 函数，处理 `sxPkt`。
+- 如果当前消息分解的数据包还有剩余，也就是 `txPkts` 不为空时，会继续把这个消息插入到 `outbndMsgSet` 中。
+  - `outbndMsgSet` 这个集合的排序逻辑如下（以 `SRBF` 为例）：
+    - 消息剩余的少的优先；
+    - 创建时间早的优先；
+    - 消息 $id$ 小的优先。
+- $sendPktAndScheduleNext$：
+  - 获得实际传输的字节大小 `bytesSentOnWire`。
+  - `nicLinkSpeed` 以 `Gbps` 为单位，所以需要乘 `1e-9`。 
+  - 通过 `sxPktDuration` 更新下一次发送的时间。
+  - 调用 `transport->socket.sendTo` 发送数据包，并且调用 `transport->scheduleAt` 规划下一次的 `sendTimer`，这里的 `sendTimer` 是一个自消息，会在 `handleMessage` 中被接受。
+- `sendTo` 函数调用 `sendToUDP` 实际发送 `udp` 消息。
+- 此后，一方面，`handleMessage` 函数等待接收 `udpIn`消息；另一方面，`handleMessage` 函数等待 `scheduleAt` 调度的自消息 `sendTimer`。
+
+
+
+#### 第一次接收
+
+- $handleMessage$：
+  - 这次接受的是 `udpIn` 消息，调用 `handleRecvdPkt` 函数处理。
+- $handleRecvdPkt$：
+  - 根据接收的数据包，更新了一些相关活动周期的时间信息（这一块儿没看懂）
+  - 根据接收的数据包调用处理函数 `processReceivedPkt`。
+- $processReceivedPkt$：
+  - 
+
+
+
+
+
+## 其他相关
+
+- $Homa$ 是消息驱动的模拟器
+  - $AppMessage$ 是应用层传递的消息，该消息通过处理，处理成 $OutboundMessage$。
+  - $OutboundMessage$ 是 $homa$ 层面的消息，进行后续处理和调度。
+
+
+
 ## 授权相关机制
 
 - 执行过程
