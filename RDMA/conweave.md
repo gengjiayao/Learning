@@ -1,6 +1,18 @@
 <center><h1>Conweave Learning</h1></center>
 
-### ns3启动流程
+### 1  相关指令
+
+```bash
+cleanup.sh # 清除输出信息
+waf # 编译
+autorun.sh # 执行
+```
+
+
+
+
+
+### 2  ns3启动流程
 
 - `run.py`：`os.system` 函数执行 `./waf --run 'scratch/network-load-lanbace {config_name}`，`config_name` 为配置文件。
   - `config_name` 一律保存在了 `/mix/output/` 文件夹下的 `config.txt`。
@@ -9,9 +21,9 @@
 
 
 
-### 自上而下协议栈
+### 3  自上而下协议栈
 
-#### 发送数据
+#### 3.1  发送数据
 
 ``` 
 RdmaClient --> RdmaDriver --> RdmaHw --> QbbNetDevice --> Swich节点发送
@@ -32,7 +44,7 @@ RdmaClient --> RdmaDriver --> RdmaHw --> QbbNetDevice --> Swich节点发送
 
 
 
-#### 接收数据
+#### 3.2  接收数据
 
 - `QbbChannel::TransmitStart` 中调用接收函数 `QbbNetDevice::Receive`。
 - `QbbNetDevice::Receive` 中接收到数据包，判断传递到 $switch$ 还是 $nic$。
@@ -52,9 +64,9 @@ RdmaClient --> RdmaDriver --> RdmaHw --> QbbNetDevice --> Swich节点发送
 
 
 
-### 自定义数据包字段
+### 4  自定义数据包字段
 
-#### 修改 $udp$ 报文头
+#### 4.1  修改 $udp$ 报文头
 
 - `seq-ts-header` 相关修改
 
@@ -80,7 +92,7 @@ RdmaClient --> RdmaDriver --> RdmaHw --> QbbNetDevice --> Swich节点发送
 
 
 
-#### 修改 $udp$ 相关处理函数
+#### 4.2  修改 $udp$ 相关处理函数
 
 - `seq-ts-header` 相关修改
   - `seq-ts-header.h` 头文件
@@ -90,26 +102,26 @@ RdmaClient --> RdmaDriver --> RdmaHw --> QbbNetDevice --> Swich节点发送
 
 
 
-#### $udp$ 相关成员变量值的设置
+#### 4.3  $udp$ 相关成员变量值的设置
 
 - `RdmaHw::GetNxtPacket` 相关修改：
   - 设置 `test_udp` 的值：`seqTs.SetTestUDP(FFFFFFFF);` 
 
 
 
-#### $udp$ 相关修改在接收方的检查
+#### 4.4  $udp$ 相关修改在接收方的检查
 
 - 在 `generate ACK or NACK` 上方添加检查。
 
 
 
-#### $IntHeader$ 部分如何更新
+#### 4.5  $IntHeader$ 部分如何更新
 
 - 在 `point-to-point/model/switch-node.cc` 中，需要根据 $Header$ 的大小找到 $IntHeader$ 的起始位置，一定注意这里如果修改了对应的报头，要在这儿修改字节数，以便找到对应的位置！！
 
 
 
-### CustomHeader相关
+### 5  CustomHeader相关
 
 总的来说，这个定制化的报文头是将传输中的数据包的报文头解析后保存下来的数据。
 
@@ -119,7 +131,7 @@ RdmaClient --> RdmaDriver --> RdmaHw --> QbbNetDevice --> Swich节点发送
 
 
 
-### 测试命令
+### 6  测试命令
 
 （只是记录一下，方便拷贝）
 
@@ -129,14 +141,14 @@ python3 run.py --cc hpcc --lb letflow --pfc 1 --irn 0 --simul_time 0.1 --netload
 
 
 
-### 注意
+### 7  注意
 
 - `build` 文件夹中的头文件不需要更改，对应的文件在 `src` 中都有体现，只需要修改 `src` 中的头文件，然后 `./waf`，`build` 文件夹中的相关信息将自动更新。
 - `IntHeader` 更新位置在：`point-to-point/model/switch-node.cc`，进行了强制类型转换。
 
 
 
-### 当前问题（不影响核心算法调度）
+### 8  当前问题（不影响核心算法调度）
 
 - `udp` 数据包修改字段存在问题，会与 `hpcc` 算法冲突，目前表现在 `test_udp` 与 `intHop` 共用一个字段。
   - 猜想1：对齐问题？不是！换了1字节、2字节、4字节都有这个问题。
