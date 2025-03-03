@@ -39,7 +39,7 @@
   - 通过 `sxPktDuration` 更新下一次发送的时间。
   - 调用 `transport->socket.sendTo` 发送数据包，并且调用 `transport->scheduleAt` 规划下一次的 `sendTimer`，这里的 `sendTimer` 是一个自消息，会在 `handleMessage` 中被接受。
 - `sendTo` 函数调用 `sendToUDP` 实际发送 `udp` 消息。
-- 此后，一方面，`handleMessage` 函数等待接收 `udpIn`消息；另一方面，`handleMessage` 函数等待 `scheduleAt` 调度的自消息 `sendTimer`。
+- 此后，一方面，`handleMessage` 函数等待接收 `udpIn`消息，也就是上面 `sendTo` 发送的消息；另一方面，`handleMessage` 函数等待 `scheduleAt` 调度的自消息 `sendTimer`。
 
 
 
@@ -51,7 +51,11 @@
   - 根据接收的数据包，更新了一些相关活动周期的时间信息（这一块儿没看懂）
   - 根据接收的数据包调用处理函数 `processReceivedPkt`。
 - $processReceivedPkt$：
-  - 
+  - 带宽浪费的判定：
+    - 设定两次接收到数据包的时间间隔为 $t_1$，接收一个数据包所需要的时间是 $t_2$，在 $t_1$ 时间内传输的授权数据包延时为 $t_3$。
+    - 如果 $t_1 \gt t_2 + t_3$ 并且当前还有等待授权方，此时便存在了带宽浪费。
+  - 计算带宽浪费估计值：
+    - 
 
 
 
@@ -62,6 +66,15 @@
 - $Homa$ 是消息驱动的模拟器
   - $AppMessage$ 是应用层传递的消息，该消息通过处理，处理成 $OutboundMessage$。
   - $OutboundMessage$ 是 $homa$ 层面的消息，进行后续处理和调度。
+- $InboundMessage$ 与 $OutboundMessage$
+  - $InboundMessage$
+    - 核心：处理从网络接收的数据，关注如何高效地接收和重组消息；管理接收端发送的授权，控制发送端的数据发送；主要处理接收数据包的重组和完整性检查。
+    - $GrantList$：
+
+  - $OutboundMessage$
+    - 核心：处理向网络发送的数据，关注如何高效地准备和发送消息；根据接收端的授权来发送数据，管理调度和非调度数据包的发送；管理数据包的准备和发送，包括请求包、非调度数据包和调度数据包。
+    - 
+
 
 
 
