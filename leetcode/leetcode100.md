@@ -444,6 +444,35 @@ public:
 
 
 
+### [19. 删除链表的倒数第 N 个结点](https://leetcode.cn/problems/remove-nth-node-from-end-of-list/)
+
+- 双指针
+
+```cpp
+class Solution {
+public:
+    ListNode* removeNthFromEnd(ListNode* head, int n) {
+        ListNode start;
+        start.next = head; 
+        ListNode* first = &start;
+        ListNode* second = &start;
+        while (n--) {
+            first = first->next;
+        }
+        while (first->next) {
+            first = first->next;
+            second = second->next;
+        }
+        ListNode* nxt = second->next;
+        second->next = second->next->next;
+        delete nxt;
+        return start.next;
+    }
+};
+```
+
+
+
 ### [24. 两两交换链表中的节点](https://leetcode.cn/problems/swap-nodes-in-pairs/)
 
 - 递归
@@ -510,34 +539,45 @@ public:
 
 
 
-### [19. 删除链表的倒数第 N 个结点](https://leetcode.cn/problems/remove-nth-node-from-end-of-list/)
+### [25. K 个一组翻转链表](https://leetcode.cn/problems/reverse-nodes-in-k-group/)
 
-- 双指针
+- 哨兵，翻转技巧
 
 ```cpp
 class Solution {
 public:
-    ListNode* removeNthFromEnd(ListNode* head, int n) {
-        ListNode start;
-        start.next = head; 
-        ListNode* first = &start;
-        ListNode* second = &start;
-        while (n--) {
-            first = first->next;
+    ListNode* reverseKGroup(ListNode* head, int k) {
+        int n = 0;
+        ListNode *p = head;
+        while (p) {
+            n++;
+            p = p->next;
         }
-        while (first->next) {
-            first = first->next;
-            second = second->next;
+
+        ListNode dummy;
+        dummy.next = head;
+
+        ListNode *p0 = &dummy; // p0是每一段的哨兵
+        ListNode *pre = nullptr;
+        ListNode *cur = head;
+        while (n >= k) {
+            n -= k;
+            for (int i = 0; i < k; i++) {
+                ListNode *nxt = cur->next;
+                cur->next = pre;
+                pre = cur;
+                cur = nxt;
+            }
+            ListNode *nxt = p0->next; // 记录下一次哨兵应该在的位置
+
+            p0->next->next = cur;
+            p0->next = pre;
+            p0 = nxt;
         }
-        ListNode* nxt = second->next;
-        second->next = second->next->next;
-        delete nxt;
-        return start.next;
+        return dummy.next;
     }
 };
 ```
-
-
 
 
 
