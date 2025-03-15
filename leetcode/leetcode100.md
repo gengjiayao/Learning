@@ -253,6 +253,8 @@ public:
 - S1. 经典头插法（画好移动顺序）
 
 ```cpp
+// 注意cur为nullptr时，nxt不存在的问题。
+// 头插法，cur存在即可插
 class Solution {
 public:
     ListNode* reverseList(ListNode* head) {
@@ -276,6 +278,7 @@ public:
 - S1. 找中点+翻转
 
 ```cpp
+// 在找中点时放松，比较时严格，按照head2比较
 class Solution {
 public:
   	// 找中点
