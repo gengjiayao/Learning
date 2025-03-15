@@ -10,14 +10,23 @@ autorun.sh # 执行
 
 
 
-
-
 ### 2  ns3启动流程
 
 - `run.py`：`os.system` 函数执行 `./waf --run 'scratch/network-load-lanbace {config_name}`，`config_name` 为配置文件。
+
   - `config_name` 一律保存在了 `/mix/output/` 文件夹下的 `config.txt`。
+
 - `network-load-balance.cc`：`main` 函数中 `conf` 读入上方 `config_name` 的参数。（ $Line\;737$ ）
   - `conf` 中有 `FLOW_FILE`、`CC_MODE` 等各种参数。
+
+- `flow` 文件中的五元组在 `network-load-lanbace.cc` 中有所体现（$Line \ 272$），该文件中是用 `FlowInput` 组织的一个数组结构，用于接收 `flow.txt` 中的数据，分别是：
+
+  ```cpp
+  // 源ip，目的ip，优先级，包大小，流创建时间
+  77 0 3 4287 2.000000003
+  102 42 3 5328 2.000000237
+  94 91 3 1956 2.000000438
+  ```
 
 
 
