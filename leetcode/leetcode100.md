@@ -581,6 +581,234 @@ public:
 
 
 
+### [138. 随机链表的复制](https://leetcode.cn/problems/copy-list-with-random-pointer/)
+
+- S1. 两次遍历+哈希
+
+```cpp
+class Solution {
+public:
+    unordered_map<Node*, Node*> cache;
+    Node* copyRandomList(Node* head) {
+        Node *p = head;
+        while (p) {
+            cache[p] = new Node(p->val);
+            p = p->next;
+        }
+        p = head;
+        while (p) {
+            cache[p]->next = cache[p->next];
+            cache[p]->random = cache[p->random];
+            p = p->next;
+        }
+        return cache[head];
+    }
+};
+```
+
+
+
+- S2. 回溯+哈希
+
+```cpp
+class Solution {
+public:
+    unordered_map<Node*, Node*> cache;
+    Node* copyRandomList(Node* head) {
+        if (head == nullptr) return nullptr;
+
+        if (!cache[head]) {
+            Node *newHead = new Node(head->val);
+            cache[head] = newHead;
+            newHead->next = copyRandomList(head->next);
+            newHead->random = copyRandomList(head->random);
+        }
+        return cache[head];
+    }
+};
+```
+
+
+
+- S3. 不哈希 技巧
+
+```cpp
+class Solution {
+public:
+    Node* copyRandomList(Node* head) {
+        if (!head) return nullptr;
+
+        Node *cur = head;
+        while (cur) {
+            Node *tmp = new Node(cur->val);
+            tmp->next = cur->next;
+            cur->next = tmp;
+            cur = tmp->next;
+        }
+
+        cur = head;
+        while (cur) {
+            if (cur->random) 
+                cur->next->random = cur->random->next;
+            cur = cur->next->next;
+        }
+
+        Node *res = head->next;
+        Node *pre = head;
+        cur = head->next;
+
+        while (cur->next) {
+            pre->next = pre->next->next;
+            cur->next = cur->next->next;
+            pre = pre->next;
+            cur = cur->next;
+        }
+        pre->next = nullptr; // 恢复原链表最后一个节点的next指针为nullptr
+        return res;
+    }
+};
+```
+
+
+
+### [148. 排序链表](https://leetcode.cn/problems/sort-list/)
+
+- S1. 归并
+
+```cpp
+class Solution {
+public:
+    // 快慢指针slow指向的是第二条链
+    ListNode* mid(ListNode* head) {
+        // 用pre记录，为了切割
+        ListNode *pre = head, *slow = head, *fast = head;
+        while (fast && fast->next) {
+            pre = slow;
+            slow = slow->next;
+            fast = fast->next->next;
+        }
+        pre->next = nullptr;
+        return slow;
+    }
+
+    ListNode *merge(ListNode* l1, ListNode* l2) {
+        ListNode dummy;
+        ListNode *cur = &dummy;
+        while(l1 && l2) {
+            if (l1->val < l2->val) {
+                cur->next = l1;
+                l1 = l1->next;
+            } else {
+                cur->next = l2;
+                l2 = l2->next;
+            }
+            cur = cur->next;
+        }
+        cur->next = l1 ? l1 : l2;
+        return dummy.next;
+    }
+
+    ListNode* sortList(ListNode* head) {
+        if (!head || !head->next) {
+            return head;
+        }
+
+        ListNode *head2 = mid(head);
+
+        head = sortList(head);
+        head2 = sortList(head2);
+
+        return merge(head, head2);
+    }
+};
+```
+
+
+
+### [23. 合并 K 个升序链表](https://leetcode.cn/problems/merge-k-sorted-lists/)
+
+- 分治+合并
+
+```cpp
+class Solution {
+public:
+    ListNode* mergeTwoLists(ListNode* l1, ListNode* l2) {
+        ListNode dummy;
+        ListNode* cur = &dummy;
+
+        while (l1 && l2) {
+            if (l1->val < l2->val) {
+                cur->next = l1;
+                l1 = l1->next;
+            } else {
+                cur->next = l2;
+                l2 = l2->next;
+            }
+            cur = cur->next;
+        }
+
+        cur->next = l1 ? l1 : l2;
+        return dummy.next;
+    }
+
+    ListNode* merge(vector<ListNode*>& lists, int l, int r) {
+        if (l == r) return lists[l];
+
+        int mid = (l + r) >> 1;
+        auto left = merge(lists, l, mid);
+        auto right = merge(lists, mid + 1, r);
+        return mergeTwoLists(left, right);
+    }
+
+    ListNode* mergeKLists(vector<ListNode*>& lists) {
+        if (lists.size() == 0) return nullptr; // lists为空的情况
+        return merge(lists, 0, lists.size() - 1); // 闭区间分治
+    }
+};
+```
+
+- 最小堆
+
+```cpp
+class Solution {
+public:
+    ListNode* mergeKLists(vector<ListNode*>& lists) {
+        auto cmp = [](ListNode* a, ListNode* b) {
+            return a->val > b->val; // 最小堆是大于号
+        };
+
+        priority_queue<ListNode*, vector<ListNode*>, decltype(cmp)> pq;
+        for (auto head : lists) {
+            if (head) {
+                pq.push(head);
+            }
+        }
+
+        ListNode dummy;
+        ListNode *cur = &dummy;
+
+        while (!pq.empty()) {
+            ListNode *node = pq.top();
+            cur->next = node;
+            cur = cur->next;
+
+            pq.pop();
+            if (node->next) {
+                pq.push(node->next);
+            }
+        }
+        return dummy.next;
+
+    }
+};
+```
+
+
+
+### [146. LRU 缓存](https://leetcode.cn/problems/lru-cache/)
+
+
+
 
 
 ## 二叉树
