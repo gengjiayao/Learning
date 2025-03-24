@@ -230,7 +230,7 @@ public:
 
 
 
-- S2. 技巧双指针
+- S2. 技巧双指针（更好）
 
 ```cpp
 class Solution {
@@ -258,15 +258,15 @@ public:
 class Solution {
 public:
     ListNode* reverseList(ListNode* head) {
-        ListNode *ans = nullptr;
+        ListNode *pre = nullptr;
         ListNode *cur = head;
         while (cur) {
             ListNode *next = cur->next;
-            cur->next = ans; // 头插法1 先指ans
-            ans = cur; // 头插法2 再指当前
+            cur->next = pre; // 头插法1 先指ans
+            pre = cur; // 头插法2 再指当前
             cur = next;
         }
-        return ans;
+        return pre;
     }
 };
 ```
@@ -304,7 +304,7 @@ public:
 
     bool isPalindrome(ListNode* head) {
         ListNode *head2 = reverseL(getMid(head));
-        while (head2) {
+        while (head2) { // 也可以写成 head && head2 本题更快
             if (head2->val != head->val) {
                 return false;
             }
@@ -391,22 +391,22 @@ public:
 ```cpp
 class Solution {
 public:
-    ListNode* mergeTwoLists(ListNode* l1, ListNode* l2) {
-        ListNode *node = new ListNode;
+    ListNode* mergeTwoLists(ListNode* list1, ListNode* list2) {
+        ListNode dummy(-1, nullptr);
+        ListNode *pre = &dummy;
 
-        ListNode *cur = node;
-        while (l1 && l2) {
-            if (l1->val < l2->val) {
-                cur->next = l1;
-                l1 = l1->next;
+        while (list1 && list2) {
+            if (list1->val < list2->val) {
+                pre->next = list1;
+                list1 = list1->next;
             } else {
-                cur->next = l2;
-                l2 = l2->next;
+                pre->next = list2;
+                list2 = list2->next;
             }
-            cur = cur->next;
+            pre = pre->next;
         }
-        cur->next = l1 ? l1 : l2;
-        return node->next;
+        pre->next = list1 ? list1 : list2;
+        return dummy.next;
     }
 };
 ```
@@ -421,8 +421,9 @@ public:
 class Solution {
 public:
     ListNode* addTwoNumbers(ListNode* l1, ListNode* l2) {
-        ListNode head;
-        ListNode *cur = &head;
+        ListNode dummy;
+        ListNode *pre = &dummy;
+
         int sum = 0;
         while (l1 || l2 || sum) {
             if (l1) {
@@ -433,11 +434,11 @@ public:
                 sum += l2->val;
                 l2 = l2->next;
             }
-            cur->next = new ListNode(sum % 10);
-            cur = cur->next;
-            sum = sum >= 10 ? 1 : 0;
+            pre->next = new ListNode(sum % 10);
+            sum /= 10;
+            pre = pre->next;
         }
-        return head.next;
+        return dummy.next;
     }
 };
 ```
@@ -806,6 +807,41 @@ public:
 
 
 ### [146. LRU 缓存](https://leetcode.cn/problems/lru-cache/)
+
+- S1. 极致 $STL$
+
+```cpp
+class LRUCache {
+public:
+    LRUCache(int cap) : cap (cap) {}
+
+    int get(int k) {
+        if (m.count(k)) {
+            l.splice(l.begin(), l, m[k]);
+            return m[k]->second;
+        }
+        return -1;
+    }
+    
+    void put(int k, int v) {
+        if (m.count(k)) l.erase(m[k]);
+        l.push_front({k, v});
+        m[k] = l.begin();
+        if (l.size() > cap) m.erase(l.back().first), l.pop_back();
+    }
+private: 
+    int cap;
+    list<pair<int, int>> l;
+    unordered_map<int, decltype(l.begin())> m;
+};
+```
+
+
+
+- S2. 手撕双向循环链表
+
+```cpp
+```
 
 
 
