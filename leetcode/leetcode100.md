@@ -447,27 +447,29 @@ public:
 
 ### [19. 删除链表的倒数第 N 个结点](https://leetcode.cn/problems/remove-nth-node-from-end-of-list/)
 
-- 双指针
+- 前后双指针
 
 ```cpp
 class Solution {
 public:
     ListNode* removeNthFromEnd(ListNode* head, int n) {
-        ListNode start;
-        start.next = head; 
-        ListNode* first = &start;
-        ListNode* second = &start;
-        while (n--) {
-            first = first->next;
+        ListNode dummy(0, head);
+
+        ListNode *fast = &dummy, *slow = &dummy; // 一定指向首节点
+
+        while(n--) {
+            fast = fast->next;
+        } 
+
+        while (fast->next) {
+            slow = slow->next;
+            fast = fast->next;
         }
-        while (first->next) {
-            first = first->next;
-            second = second->next;
-        }
-        ListNode* nxt = second->next;
-        second->next = second->next->next;
-        delete nxt;
-        return start.next;
+        ListNode *tmp = slow->next;
+        slow->next = slow->next->next;
+
+        delete tmp;
+        return dummy.next;
     }
 };
 ```
@@ -774,33 +776,31 @@ public:
 class Solution {
 public:
     ListNode* mergeKLists(vector<ListNode*>& lists) {
-        auto cmp = [](ListNode* a, ListNode* b) {
-            return a->val > b->val; // 最小堆是大于号
+        auto cmp = [](ListNode *a, ListNode *b) {
+            return a->val > b->val; // 用大于号构造小堆
         };
 
-        priority_queue<ListNode*, vector<ListNode*>, decltype(cmp)> pq;
-        for (auto head : lists) {
-            if (head) {
-                pq.push(head);
-            }
+        priority_queue<ListNode*, vector<ListNode*>, decltype(cmp)> q;
+
+        for (auto list : lists) {
+            if (list) q.push(list);
         }
 
         ListNode dummy;
         ListNode *cur = &dummy;
 
-        while (!pq.empty()) {
-            ListNode *node = pq.top();
-            cur->next = node;
+        while (!q.empty()) {
+            ListNode *tmp = q.top();
+            cur->next = tmp;
             cur = cur->next;
 
-            pq.pop();
-            if (node->next) {
-                pq.push(node->next);
+            q.pop();
+            if (tmp->next) {
+                q.push(tmp->next);
             }
         }
         return dummy.next;
-
-    }
+    }  
 };
 ```
 
