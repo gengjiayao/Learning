@@ -6,7 +6,7 @@
 
 ## 1  发送方逻辑
 
-按照窗口大小发送携带标记的 `udp` 数据包，
+按照窗口大小发送携带标记的 `udp` 数据包，需要修改 `bps` 速率控制发送。
 
 
 
@@ -216,8 +216,6 @@ void RdmaHw::AddQueuePair(uint64_t size, uint16_t pg, Ipv4Address sip, Ipv4Addre
 
 
 
-
-
 `ReadFlowInput` 函数是向全局变量 `flowf` 中读入上述的5个变量
 
 ```cpp
@@ -274,5 +272,7 @@ EventId Simulator::Schedule (Time const &time, void (*f)(U1,U2), T1 a1, T2 a2)
 
 
 
+### BPS相关
 
+目前还是没看懂到底怎么传过去的，但是知道 `m_bps` 就是 `100G`。
 
