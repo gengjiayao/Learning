@@ -55,8 +55,6 @@ appCon.Stop(Seconds(100.0));
 
 
 
-
-
 ### topology_file
 
 默认的 `topology_file` 是 `leaf_spine_128_100G_OS2.txt`，存储在 `config` 文件夹下。

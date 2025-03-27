@@ -2,6 +2,16 @@
 
 
 
+## 查找动态库位置
+
+- `ldd` 命令
+  - `-u` 查找用不到的动态库。
+- 一篇好文章：[查看linux下程序或者动态库到底依赖哪些so动态库以及对应的版本](https://blog.csdn.net/jinking01/article/details/120997165)
+
+
+
+
+
 ## 授权控制
 
 ### chown
