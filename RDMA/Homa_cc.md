@@ -10,10 +10,49 @@
 
 
 
-### 1.1  窗口相关
+当前理解：
+
+`qp` 与 `src-dst` 强相关，调度 `homa` 协议下哪个流发送，就是调度 `qp`。
+
+
+
+### 1.1 rdmaHw相关
+
+- 有待确认？好像不是？所有 `qp` 共用一个 `rdmaHw` 对象， `rdmaHw` 对象中有一个 `m_nic` 数组存储所有的 `nic`。
+- 
+
+
+
+### 1.2 选择QP函数
+
+- 选择 `qp` 的核心函数在 `RdmaEgressQueue::GetNextQindex`，通过测试发现，这个函数是从 `m_qpGrp` 选一个 `qp` 进行调度。
+
+  ```cpp
+  std::cout << Settings::ip_to_node_id(m_qpGrp->m_qps[i]->sip) std::endl;
+  ```
+
+  通过上面的语句打印 `sip`，发现当前函数处理的是同一个 `sip` 对应的 `qp`，并不是所有 `sip` 的全部 `qp`。
+
+- 当前 `run` 的命令没有开启 `IRN`，这个是可以配置的。
+- 判断当前 `qp` 是否完成的逻辑：
+  - 先发送数据包，发设定的 `size`，每次发 `1000`，直到发完。
+  - 发完的下一次会调用一次当前函数，发现发完了，然后判断当前 `qp` 是否完成任务，发现没完成，但是该发的全发了。
+  - 如果是该发的全发了的情况，那就正常退出发送函数 `DequeueAndTransmit`。
+  - 接下来就是等待 `ACK` 的处理逻辑，每一次的 `ACK` 会更新 `snd_una`，直到更新 `snd_una` 与 `m_size` 相同时，此时 `qp` 才完成任务，就会被打上标记，下次如果遍历到这个 `qp` 的时候，就会直接跳过处理。 
+
+
+
+### 1.3  窗口相关
 
 - 在 `main` 函数中有相应窗口的设置：
   - `clientHelper` 对象初始化的时候，有设定 `win`，此时值为 `maxbdp`，最大带宽时延积。
+
+
+
+### 1.4 获取下一个QP序号函数相关
+
+- `nextAvail`：下一次可以发送的时间。
+- 
 
 
 
@@ -143,19 +182,34 @@ if (flow_input.idx < flow_num)
 // 1. 工厂 install 成了一个appCon
 ApplicationContainer appCon = clientHelper.Install(n.Get(src));
 
-// 2. 调用Start方法，这里创建了一个指向Application的指针
-appCon.Start(Seconds(Time(0)));
+// 2. 内部创建一个node，调用AddApplication函数
+node->AddApplication (client);
 
-// 3.Application 中定义了如下虚函数
+// 3. 设置调度时间，调用Application::Start函数
+Simulator::ScheduleWithContext (GetId (), Seconds (0.0), &Application::Start, application);
+
+// 4. 到时间调用下面的函数
+Initialize();
+
+// 5. 调用DoStart函数
+current->DoStart ();
+
+// 6. 由于有Application继承了Object，所以调用DoStart函数就是调用了Application中的DoStart函数
+virtual void DoStart (void);
+
+// 7. 调用StartApplication函数
+m_startEvent = Simulator::Schedule (m_startTime, &Application::StartApplication, this);
+
+// 8.Application 中定义了如下虚函数
 virtual void StartApplication (void);
 
-// 4. 而 RdmaClient 是 Application 的派生类
+// 9. 而 RdmaClient 是 Application 的派生类
 class RdmaClient : public Application
 
-// 5. RdmaClient 类中有 StartApplication 的虚函数的声明以及实现
+// 10. RdmaClient 类中有 StartApplication 的虚函数的声明以及实现
 virtual void StartApplication (void);
 
-// 6. rdma->AddQueuePair方法开始创建qp流程
+// 11. rdma->AddQueuePair方法开始创建qp流程
 void RdmaClient::StartApplication (void)
 {
   NS_LOG_FUNCTION_NOARGS ();
@@ -165,7 +219,7 @@ void RdmaClient::StartApplication (void)
   rdma->AddQueuePair(m_size, m_pg, m_sip, m_dip, m_sport, m_dport, m_win, m_baseRtt, m_flow_id);
 }
 
-// 7. 调用 RdmaHw::AddQueuePair 方法开始进入 conweave 实现的流程
+// 12. 调用 RdmaHw::AddQueuePair 方法开始进入 conweave 实现的流程
 void RdmaHw::AddQueuePair(uint64_t size, uint16_t pg, Ipv4Address sip, Ipv4Address dip,
                           uint16_t sport, uint16_t dport, uint32_t win, uint64_t baseRtt,
                           int32_t flow_id) {
