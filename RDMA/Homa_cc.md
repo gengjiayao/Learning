@@ -6,24 +6,13 @@
 
 ## 1  发送方逻辑
 
-按照窗口大小发送携带标记的 `udp` 数据包，需要修改 `bps` 速率控制发送。
+- 按照授权的字节数代替发送速率。
+
+- `qp` 与 `src-dst` 强相关，调度 `homa` 协议下哪个流发送，就是调度 `qp`。
 
 
 
-当前理解：
-
-`qp` 与 `src-dst` 强相关，调度 `homa` 协议下哪个流发送，就是调度 `qp`。
-
-
-
-### 1.1 rdmaHw相关
-
-- 有待确认？好像不是？所有 `qp` 共用一个 `rdmaHw` 对象， `rdmaHw` 对象中有一个 `m_nic` 数组存储所有的 `nic`。
-- 
-
-
-
-### 1.2 选择QP函数
+### 1.1 选择QP函数
 
 - 选择 `qp` 的核心函数在 `RdmaEgressQueue::GetNextQindex`，通过测试发现，这个函数是从 `m_qpGrp` 选一个 `qp` 进行调度。
 
@@ -42,17 +31,22 @@
 
 
 
-### 1.3  窗口相关
+### 1.2  窗口相关
 
 - 在 `main` 函数中有相应窗口的设置：
   - `clientHelper` 对象初始化的时候，有设定 `win`，此时值为 `maxbdp`，最大带宽时延积。
 
 
 
-### 1.4 获取下一个QP序号函数相关
+### 1.3 获取下一个QP序号函数相关
 
 - `nextAvail`：下一次可以发送的时间。
-- 
+
+
+
+## 2 接收方逻辑
+
+- `RdmaHw::ReceiveUdp` 函数原来的设计：根据发来的包，直接生成对应返回的包
 
 
 
@@ -324,7 +318,103 @@ EventId Simulator::Schedule (Time const &time, void (*f)(U1,U2), T1 a1, T2 a2)
 
 
 
+### Main函数
+
+- `n` 的含义：
+
+  ```cpp
+  // 有多少个节点，n中就有多少个对象
+  for (uint32_t i = 0; i < node_num; i++) {
+      if (node_type[i] == 0)
+          n.Add(CreateObject<Node>());
+      else {
+          Ptr<SwitchNode> sw = CreateObject<SwitchNode>();
+          n.Add(sw);
+          sw->SetAttribute("EcnEnabled", BooleanValue(enable_qcn));
+      }
+  }
+  ```
+
+- 
+
+
+
+### 节点中个数为2的原因
+
+```cpp
+// 1.主函数这个部分，将设备数由0变成了1
+internet.Install(n);  // aggregate ipv4, ipv6, udp, tcp, etc
+
+// 2.准确说是下面这条，将设备数由0变成了1
+// 绑定IPv4协议栈，检查是否有设备存在，如果没有就添加一个回环设备！
+CreateAndAggregateObjectFromTypeId (node, "ns3::Ipv4L3Protocol"); // 隐含：添加了一个回环设备
+
+// 3.函数内部调用AggregateObject
+void
+InternetStackHelper::CreateAndAggregateObjectFromTypeId (Ptr<Node> node, const std::string typeId){
+  ...
+  node->AggregateObject (protocol);
+}
+
+// 4.函数内部调用了NotifyNewAggregate
+Object::AggregateObject (Ptr<Object> o) {
+  ...
+  current->NotifyNewAggregate ();
+  ...
+}
+
+// 5.这个函数调用了SetNode
+void
+Ipv4L3Protocol::NotifyNewAggregate (){
+  ...
+  this->SetNode (node);
+  ...
+}
+
+// 6.这里在SetNode的时候调用了SetupLoopback
+void
+Ipv4L3Protocol::SetNode (Ptr<Node> node)
+{
+  m_node = node;
+  // Add a LoopbackNetDevice if needed, and an Ipv4Interface on top of it
+  SetupLoopback ();
+}
+
+// 7.主函数这个部分，将节点数变成了2
+NetDeviceContainer d = qbb.Install(snode, dnode);
+
+// 8.其中添加了QbbNetDevice
+QbbHelper::Install(Ptr<Node> a, Ptr<Node> b) {
+    NetDeviceContainer container;
+	// 这个位置添加了QbbNetDevice
+    Ptr<QbbNetDevice> devA = m_deviceFactory.Create<QbbNetDevice>();
+    devA->SetAddress(Mac48Address::Allocate());
+    a->AddDevice(devA);
+    Ptr<QbbNetDevice> devB = m_deviceFactory.Create<QbbNetDevice>();
+    devB->SetAddress(Mac48Address::Allocate());
+    b->AddDevice(devB);
+    ...
+}
+```
+
+
+
 ### BPS相关
 
 目前还是没看懂到底怎么传过去的，但是知道 `m_bps` 就是 `100G`。
+
+
+
+### rdmaHw相关
+
+通过打印下面的 `this` 指针可以发现，一个 `rdmaHw` 对应一个 `host`：
+
+```cpp
+void RdmaHw::Setup(QpCompleteCallback cb) {
+    for (uint32_t i = 0; i < m_nic.size(); i++) {
+        ...
+        std::cout << "[RdmaHw::Setup] "<< "this: " << this << std::endl;
+    }
+}
+```
 
